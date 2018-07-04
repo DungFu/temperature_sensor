@@ -35,8 +35,10 @@ def read_temp():
             temp_c = float(temp_string) / 1000.0
             temp_f = temp_c * 9.0 / 5.0 + 32.0
             return temp_f
+        else:
+            return None;
     except:
-        return 0;
+        return None;
 
 def maybe_create_table():
     db = sqlite3.connect(database_file)
@@ -70,7 +72,12 @@ def update_fan_state():
 
     r = requests.get(url = 'http://api.openweathermap.org/data/2.5/weather', params = PARAMS)
     ftemp_out = r.json()['main']['temp']
+    ftemp_out_max = r.json()['main']['temp_max']
     print('ftemp_out', ftemp_out)
+
+    threshold_temp_low = float(config.get('MAIN', 'THRESHOLD_TEMP_LOW'))
+    threshold_temp_high = float(config.get('MAIN', 'THRESHOLD_TEMP_HIGH'))
+    fallback_temp_disable = float(config.get('MAIN', 'FALLBACK_TEMP_DISABLE'))
 
     db = sqlite3.connect(database_file)
     cursor = db.cursor()
@@ -78,15 +85,21 @@ def update_fan_state():
         INSERT INTO Temps(ftemp_in, ftemp_out, timestamp) VALUES(?,?,?)
     ''', (ftemp_in, ftemp_out, int(time.time())))
     db.commit()
-
-    threshold_temp_min = float(config.get('MAIN', 'THRESHOLD_TEMP_MIN'))
-    threshold_temp_max = float(config.get('MAIN', 'THRESHOLD_TEMP_MAX'))
+    
     for plug in Discover.discover().values():
-        if (plug.state is not "ON" and ftemp_in > threshold_temp_max and ftemp_out < ftemp_in):
-            print('Turning the fan on')
-            plug.turn_on()
-        elif (plug.state is not "OFF" and ftemp_in < threshold_temp_min):
-            print('Turning the fan off')
-            plug.turn_off()
+        if (ftemp_in is not None):
+            if (plug.state is not "ON" and ftemp_in > threshold_temp_high and ftemp_out < ftemp_in):
+                print('Turning the fan on')
+                plug.turn_on()
+            elif (plug.state is not "OFF" and ftemp_in < threshold_temp_low):
+                print('Turning the fan off')
+                plug.turn_off()
+        else:
+            if (plug.state is not "ON" and ftemp_out_max > threshold_temp_high and ftemp_out < threshold_temp_high):
+                print('Turning the fan on')
+                plug.turn_on()
+            elif (plug.state is not "OFF" and ftemp_out < fallback_temp_disable):
+                print('Turning the fan off')
+                plug.turn_off()
 
 update_fan_state();
