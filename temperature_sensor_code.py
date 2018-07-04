@@ -95,7 +95,10 @@ def update_fan_state():
                 print('Turning the fan off')
                 plug.turn_off()
         else:
-            if (plug.state is not "ON" and ftemp_out_max > threshold_temp_high and ftemp_out < threshold_temp_high):
+            if (plug.state is not "ON" and
+                ftemp_out_max > threshold_temp_high and
+                ftemp_out < threshold_temp_high and
+                ftemp_out > threshold_temp_low):
                 print('Turning the fan on')
                 plug.turn_on()
             elif (plug.state is not "OFF" and ftemp_out < fallback_temp_disable):
