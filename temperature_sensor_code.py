@@ -5,6 +5,7 @@ import sqlite3
 import time
 
 from configparser import SafeConfigParser
+from datetime import datetime
 from pyHS100 import Discover
 
 database_file = 'data.db'
@@ -96,12 +97,14 @@ def update_fan_state():
                 plug.turn_off()
         else:
             if (plug.state is not "ON" and
+                datetime.now().hour >= 16 and
                 ftemp_out_max > threshold_temp_high and
                 ftemp_out < threshold_temp_high and
                 ftemp_out > threshold_temp_low):
                 print('Turning the fan on')
                 plug.turn_on()
-            elif (plug.state is not "OFF" and ftemp_out < fallback_temp_disable):
+            elif (plug.state is not "OFF" and
+                  (ftemp_out < fallback_temp_disable or datetime.now().hour >= 23)):
                 print('Turning the fan off')
                 plug.turn_off()
 
