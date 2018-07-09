@@ -47,6 +47,9 @@ def maybe_create_table():
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS Temps(id INTEGER PRIMARY KEY, ftemp_in REAL, ftemp_out REAL, timestamp INTEGER)
     ''')
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS Actions(id INTEGER PRIMARY KEY, state text, timestamp INTEGER)
+    ''')
     db.commit()
 
 def print_db():
@@ -55,6 +58,32 @@ def print_db():
     cursor.execute("SELECT * FROM Temps")
     print(cursor.fetchall())
     db.commit()
+
+def send_new_fan_state(plug, state):
+    print('Turning the fan ' + state)
+    if state is "ON":
+        plug.turn_on()
+    elif state is "OFF":
+        plug.turn_off()
+    db = sqlite3.connect(database_file)
+    cursor = db.cursor()
+    cursor.execute('''
+        INSERT INTO Actions(state, timestamp) VALUES(?,?)
+    ''', (state, int(time.time())))
+    db.commit()
+
+def fan_state_more_than_12_hours_ago(state):
+    db = sqlite3.connect(database_file)
+    cursor = db.cursor()
+    cursor.execute('''
+        SELECT MAX(timestamp) FROM Actions WHERE state=?
+    ''', (state,))
+    for row in cursor:
+        timestamp = row[0]
+        if timestamp is not None:
+            return int(time.time()) - timestamp > (12 * 60 * 60)
+    return True
+
 
 def update_fan_state():
     maybe_create_table();
@@ -90,22 +119,20 @@ def update_fan_state():
     for plug in Discover.discover().values():
         if (ftemp_in is not None):
             if (plug.state is not "ON" and ftemp_in > threshold_temp_high and ftemp_out < ftemp_in):
-                print('Turning the fan on')
-                plug.turn_on()
+                send_new_fan_state(plug, "ON")
             elif (plug.state is not "OFF" and ftemp_in < threshold_temp_low):
-                print('Turning the fan off')
-                plug.turn_off()
+                send_new_fan_state(plug, "OFF")
         else:
             if (plug.state is not "ON" and
+                fan_state_more_than_12_hours_ago("ON") and
                 datetime.now().hour >= 16 and
                 ftemp_out_max > threshold_temp_high and
                 ftemp_out < threshold_temp_high and
                 ftemp_out > threshold_temp_low):
-                print('Turning the fan on')
-                plug.turn_on()
+                send_new_fan_state(plug, "ON")
             elif (plug.state is not "OFF" and
-                  (ftemp_out < fallback_temp_disable or datetime.now().hour >= 23)):
-                print('Turning the fan off')
-                plug.turn_off()
+                  fan_state_more_than_12_hours_ago("OFF") and
+                  (ftemp_out < fallback_temp_disable or datetime.now().hour >= 24)):
+                send_new_fan_state(plug, "OFF")
 
 update_fan_state();
