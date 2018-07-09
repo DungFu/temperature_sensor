@@ -132,7 +132,7 @@ def update_fan_state():
                 send_new_fan_state(plug, "ON")
             elif (plug.state is not "OFF" and
                   fan_state_more_than_12_hours_ago("OFF") and
-                  (ftemp_out < fallback_temp_disable or datetime.now().hour >= 24)):
+                  (ftemp_out < fallback_temp_disable or datetime.now().hour >= 23)):
                 send_new_fan_state(plug, "OFF")
 
 update_fan_state();
