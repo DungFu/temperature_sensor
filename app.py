@@ -1,7 +1,8 @@
+import os
 import sqlite3
 
 from datetime import datetime
-from flask import Flask
+from flask import Flask, send_from_directory
 from flask_table import Table, Col
 
 database_file = 'data.db'
@@ -13,6 +14,12 @@ class TempsTable(Table):
     date = Col('Date')
 
 app = Flask(__name__)
+
+@app.route('/favicon.ico')
+def favicon():
+    return send_from_directory(os.path.join(app.root_path, 'static'),
+                               'favicon.ico',
+                               mimetype='image/vnd.microsoft.icon')
 
 @app.route("/")
 def main():
