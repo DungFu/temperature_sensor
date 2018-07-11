@@ -118,7 +118,7 @@ def update_fan_state():
     for plug in Discover.discover().values():
         if (ftemp_in is not None):
             if (plug.state is not "ON" and
-                datetime.now().hour >= 15 and
+                datetime.now().hour >= 16 and
                 ftemp_in > threshold_temp_high and
                 ftemp_out < ftemp_in):
                 send_new_fan_state(plug, "ON")
