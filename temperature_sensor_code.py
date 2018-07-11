@@ -84,7 +84,6 @@ def fan_state_more_than_12_hours_ago(state):
             return int(time.time()) - timestamp > (12 * 60 * 60)
     return True
 
-
 def update_fan_state():
     maybe_create_table();
     ftemp_in = read_temp()
