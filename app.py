@@ -40,6 +40,7 @@ def main():
         <html>
             <head>
                 <title>%s</title>
+                <meta http-equiv="refresh" content="60">
                 <style>
                     body {
                         margin: 0;
