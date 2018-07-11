@@ -79,8 +79,8 @@ def main():
                 </style>
             </head>
             <body>
-                <h1>Current Inside Temp: %s</h1>
-                <h1>Current Outside Temp: %s</h1>
+                <h1>Current Inside Temp: %s &#8457;</h1>
+                <h1>Current Outside Temp: %s &#8457;</h1>
                 %s
             </body>
         </html>
