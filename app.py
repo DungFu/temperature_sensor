@@ -36,7 +36,7 @@ def main():
     outside_temps = []
     for row in cursor:
         date = datetime.fromtimestamp(row[3])
-        date_string = date.strftime('%Y-%m-%d %H:%M:%S')
+        date_string = date.strftime("%Y/%m/%d - %H:%M")
         inside_temps.append((date, row[1]))
         outside_temps.append((date, row[2]))
         if current_temps is None:

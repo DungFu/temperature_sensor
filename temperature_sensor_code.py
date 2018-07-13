@@ -6,6 +6,7 @@ import time
 
 from configparser import SafeConfigParser
 from datetime import datetime
+from decimal import Decimal
 from pyHS100 import Discover
 
 database_file = 'data.db'
@@ -35,7 +36,7 @@ def read_temp():
             temp_string = lines[1][equals_pos+2:]
             temp_c = float(temp_string) / 1000.0
             temp_f = temp_c * 9.0 / 5.0 + 32.0
-            return temp_f
+            return round(Decimal(temp_f), 3)
         else:
             return None;
     except:
