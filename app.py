@@ -1,9 +1,11 @@
 import os
+import pygal
 import sqlite3
 
-from datetime import datetime
-from flask import Flask, send_from_directory
+from datetime import datetime, time
+from flask import Flask, send_from_directory, render_template
 from flask_table import Table, Col
+from pygal.style import DefaultStyle
 
 database_file = 'data.db'
 
@@ -30,66 +32,27 @@ def main():
         SELECT * FROM Temps ORDER BY timestamp DESC LIMIT 120
     ''')
     current_temps = None
+    inside_temps = []
+    outside_temps = []
     for row in cursor:
-        date = datetime.fromtimestamp(row[3]).strftime('%Y-%m-%d %H:%M:%S')
-        temps.append(dict(temp_in=str(row[1]), temp_out=str(row[2]), date=date))
+        date = datetime.fromtimestamp(row[3])
+        date_string = date.strftime('%Y-%m-%d %H:%M:%S')
+        inside_temps.append((date, row[1]))
+        outside_temps.append((date, row[2]))
         if current_temps is None:
             current_temps = [str(row[1]), str(row[2])]
+        temps.append(dict(temp_in=str(row[1]), temp_out=str(row[2]), date=date_string))
     table = TempsTable(temps)
-    html = """
-        <html>
-            <head>
-                <title>%s</title>
-                <meta http-equiv="refresh" content="60">
-                <style>
-                    body {
-                        margin: 0;
-                        text-align: center;
-                    }
-                    table {
-                        color: #333;
-                        font-family: Helvetica, Arial, sans-serif;
-                        width: 100%%; 
-                        border-collapse: collapse;
-                        border-spacing: 0; 
-                        margin: 0 auto;
-                    }
-
-                    td, th {  
-                        border: 1px solid transparent;
-                        height: 30px; 
-                        transition: all 0.3s;
-                    }
-
-                    th {  
-                        background: #DFDFDF;
-                        font-weight: bold;
-                    }
-
-                    td {  
-                        background: #FAFAFA;
-                        text-align: center;
-                    }
-
-                    tr:nth-child(even) td { background: #F1F1F1; }   
-
-                    tr:nth-child(odd) td { background: #FEFEFE; }  
-
-                    tr td:hover { background: #666; color: #FFF; }  
-                </style>
-            </head>
-            <body>
-                <h1>Current Inside Temp: %s &#8457;</h1>
-                <h1>Current Outside Temp: %s &#8457;</h1>
-                %s
-            </body>
-        </html>
-        """ % (
-            "Temperature Sensor",
-            "None" if current_temps is None else current_temps[0],
-            "None" if current_temps is None else current_temps[1],
-            table.__html__())
-    return html
+    graph = pygal.TimeLine(width=1000, height=500, show_dots=False, legend_at_bottom=True, style=DefaultStyle)
+    graph.add("Inside Temp (\u2109)",  inside_temps)
+    graph.add("Outside Temp (\u2109)",  outside_temps)
+    graph_data = graph.render_data_uri()
+    return render_template(
+        "index.html",
+        inside_temp="None" if current_temps is None else current_temps[0],
+        outside_temp="None" if current_temps is None else current_temps[1],
+        graph_data=graph_data,
+        table=table.__html__())
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=8080)
