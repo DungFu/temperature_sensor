@@ -6,6 +6,7 @@ import time
 from configparser import SafeConfigParser
 from datetime import datetime
 from flask import Flask, send_from_directory, render_template
+from flask_compress import Compress
 from flask_table import Table, Col
 from pygal.style import DefaultStyle
 
@@ -19,6 +20,7 @@ class TempsTable(Table):
     date = Col('Date')
 
 app = Flask(__name__)
+Compress(app)
 
 @app.route('/favicon.ico')
 def favicon():
