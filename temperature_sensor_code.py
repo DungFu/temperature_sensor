@@ -88,6 +88,8 @@ def fan_state_more_than_12_hours_ago(state):
 def update_fan_state():
     maybe_create_table();
     ftemp_in = read_temp()
+    if ftemp_in is None:
+        return
     print('ftemp_in', ftemp_in)
 
     config = SafeConfigParser()
@@ -107,7 +109,7 @@ def update_fan_state():
 
     threshold_temp_low = float(config.get('MAIN', 'THRESHOLD_TEMP_LOW'))
     threshold_temp_high = float(config.get('MAIN', 'THRESHOLD_TEMP_HIGH'))
-    fallback_temp_disable = float(config.get('MAIN', 'FALLBACK_TEMP_DISABLE'))
+    temp_delta_in_out = float(config.get('MAIN', 'TEMP_DELTA_IN_OUT'))
 
     db = sqlite3.connect(database_file)
     cursor = db.cursor()
@@ -117,25 +119,12 @@ def update_fan_state():
     db.commit()
     
     for plug in Discover.discover().values():
-        if (ftemp_in is not None):
-            if (plug.state is not "ON" and
-                datetime.now().hour >= 16 and
-                ftemp_in > threshold_temp_high and
-                ftemp_out < ftemp_in):
-                send_new_fan_state(plug, "ON")
-            elif (plug.state is not "OFF" and ftemp_in < threshold_temp_low):
-                send_new_fan_state(plug, "OFF")
-        else:
-            if (plug.state is not "ON" and
-                fan_state_more_than_12_hours_ago("ON") and
-                datetime.now().hour >= 16 and
-                ftemp_out_max > threshold_temp_high and
-                ftemp_out < threshold_temp_high and
-                ftemp_out > threshold_temp_low):
-                send_new_fan_state(plug, "ON")
-            elif (plug.state is not "OFF" and
-                  fan_state_more_than_12_hours_ago("OFF") and
-                  (ftemp_out < fallback_temp_disable or datetime.now().hour >= 23)):
-                send_new_fan_state(plug, "OFF")
+        if (plug.state is not "ON"
+            and ftemp_in > threshold_temp_high
+            and ftemp_out < ftemp_in - temp_delta_in_out):
+            send_new_fan_state(plug, "ON")
+        elif (plug.state is not "OFF"
+              and (ftemp_in < threshold_temp_low or ftemp_out > ftemp_in - temp_delta_in_out)):
+            send_new_fan_state(plug, "OFF")
 
 update_fan_state();
