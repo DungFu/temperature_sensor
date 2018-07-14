@@ -43,7 +43,13 @@ def main():
             current_temps = [str(row[1]), str(row[2])]
         temps.append(dict(temp_in=str(row[1]), temp_out=str(row[2]), date=date_string))
     table = TempsTable(temps)
-    graph = pygal.TimeLine(width=1000, height=500, show_dots=False, legend_at_bottom=True, style=DefaultStyle)
+    graph = pygal.DateTimeLine(
+        width=1000,
+        height=500,
+        legend_at_bottom=True,
+        show_dots=False,
+        style=DefaultStyle,
+        x_value_formatter=lambda dt: dt.strftime('%H:%M'))
     graph.add("Inside Temp (\u2109)",  inside_temps)
     graph.add("Outside Temp (\u2109)",  outside_temps)
     graph_data = graph.render_data_uri()
