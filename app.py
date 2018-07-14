@@ -1,13 +1,16 @@
 import os
 import pygal
 import sqlite3
+import time
 
-from datetime import datetime, time
+from configparser import SafeConfigParser
+from datetime import datetime
 from flask import Flask, send_from_directory, render_template
 from flask_table import Table, Col
 from pygal.style import DefaultStyle
 
 database_file = 'data.db'
+config_file = 'config.ini'
 
 # Declare your table
 class TempsTable(Table):
@@ -26,11 +29,14 @@ def favicon():
 @app.route("/")
 def main():
     temps = []
+    config = SafeConfigParser()
+    config.read('config.ini')
+    fetch_hours = float(config.get('MAIN', 'WEB_UI_HOURS'))
     db = sqlite3.connect(database_file)
     cursor = db.cursor()
     cursor.execute('''
-        SELECT * FROM Temps ORDER BY timestamp DESC LIMIT 120
-    ''')
+        SELECT * FROM Temps WHERE timestamp > ? ORDER BY timestamp DESC
+    ''', (int(time.time()) - int(fetch_hours*60*60),))
     current_temps = None
     inside_temps = []
     outside_temps = []
