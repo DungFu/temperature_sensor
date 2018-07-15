@@ -60,7 +60,7 @@ def print_db():
     print(cursor.fetchall())
     db.commit()
 
-def send_new_fan_state(plug, state):
+def send_new_fan_state(plug, state, now):
     print('Turning the fan ' + state)
     if state is "ON":
         plug.turn_on()
@@ -70,20 +70,8 @@ def send_new_fan_state(plug, state):
     cursor = db.cursor()
     cursor.execute('''
         INSERT INTO Actions(state, timestamp) VALUES(?,?)
-    ''', (state, int(time.time())))
+    ''', (state, now))
     db.commit()
-
-def fan_state_more_than_12_hours_ago(state):
-    db = sqlite3.connect(database_file)
-    cursor = db.cursor()
-    cursor.execute('''
-        SELECT MAX(timestamp) FROM Actions WHERE state=?
-    ''', (state,))
-    for row in cursor:
-        timestamp = row[0]
-        if timestamp is not None:
-            return int(time.time()) - timestamp > (12 * 60 * 60)
-    return True
 
 def update_fan_state():
     maybe_create_table();
@@ -111,20 +99,22 @@ def update_fan_state():
     threshold_temp_high = float(config.get('MAIN', 'THRESHOLD_TEMP_HIGH'))
     temp_delta_in_out = float(config.get('MAIN', 'TEMP_DELTA_IN_OUT'))
 
+    now = int(time.time())
+
     db = sqlite3.connect(database_file)
     cursor = db.cursor()
     cursor.execute('''
         INSERT INTO Temps(ftemp_in, ftemp_out, timestamp) VALUES(?,?,?)
-    ''', (ftemp_in, ftemp_out, int(time.time())))
+    ''', (ftemp_in, ftemp_out, now))
     db.commit()
     
     for plug in Discover.discover().values():
         if (plug.state is not "ON"
             and ftemp_in > threshold_temp_high
             and ftemp_out < ftemp_in - temp_delta_in_out):
-            send_new_fan_state(plug, "ON")
+            send_new_fan_state(plug, "ON", now)
         elif (plug.state is not "OFF"
               and (ftemp_in < threshold_temp_low or ftemp_out > ftemp_in - temp_delta_in_out)):
-            send_new_fan_state(plug, "OFF")
+            send_new_fan_state(plug, "OFF", now)
 
 update_fan_state();

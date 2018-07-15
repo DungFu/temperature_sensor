@@ -51,6 +51,8 @@ def main():
             current_temps = [str(row[1]), str(row[2])]
         temps.append(dict(temp_in=str(row[1]), temp_out=str(row[2]), date=date_string))
     table = TempsTable(temps)
+    threshold_temp_low = float(config.get('MAIN', 'THRESHOLD_TEMP_LOW'))
+    threshold_temp_high = float(config.get('MAIN', 'THRESHOLD_TEMP_HIGH'))
     graph = pygal.DateTimeLine(
         width=1000,
         height=500,
@@ -58,6 +60,7 @@ def main():
         show_dots=False,
         style=DefaultStyle,
         x_value_formatter=lambda dt: dt.strftime('%H:%M'))
+    graph.y_labels_major = [threshold_temp_low, threshold_temp_high]
     graph.add("Inside Temp (\u2109)",  inside_temps)
     graph.add("Outside Temp (\u2109)",  outside_temps)
     graph_data = graph.render_data_uri()
